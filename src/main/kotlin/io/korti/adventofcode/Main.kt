@@ -1,9 +1,6 @@
 package io.korti.adventofcode
 
-import io.korti.adventofcode.day.AbstractDay
-import io.korti.adventofcode.day.DayOne
-import io.korti.adventofcode.day.DayThree
-import io.korti.adventofcode.day.DayTwo
+import io.korti.adventofcode.day.*
 
 fun main(args: Array<String>) {
     val level = getArgument("day", args)
@@ -26,6 +23,9 @@ private fun getDay(level: Int): AbstractDay {
         }
         3 -> {
             DayThree()
+        }
+        4 -> {
+            DayFour()
         }
         else -> {
             throw Exception("Selected level does not exists!")
