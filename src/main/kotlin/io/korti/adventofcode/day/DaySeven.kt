@@ -13,7 +13,7 @@ class DaySeven : AbstractDay() {
     }
 
     override fun run(input: List<String>): String {
-        val intCode = input[0].split(",").map { it.toInt() }
+        val intCode = input[0].split(",").map { it.toLong() }
         val programs = arrayOf(
             IntCodeProgram(intCode, headless = true, feedbackMode = true),
             IntCodeProgram(intCode, headless = true, feedbackMode = true),
@@ -21,12 +21,12 @@ class DaySeven : AbstractDay() {
             IntCodeProgram(intCode, headless = true, feedbackMode = true),
             IntCodeProgram(intCode, headless = true, feedbackMode = true)
         )
-        var maxThrust = Int.MIN_VALUE
-        var output = 0
+        var maxThrust = Long.MIN_VALUE
+        var output = 0L
         for (phase in 56789..98765) {
             if(validatePhase(phase).not()) continue
             programs.forEachIndexed { i, program ->
-                program.inputBuffer.add(getPhase(phase, i))
+                program.inputBuffer.add(getPhase(phase, i).toLong())
             }
             do {
                 programs.forEach { program ->

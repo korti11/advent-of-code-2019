@@ -1,8 +1,8 @@
 package io.korti.adventofcode.intcode
 
-data class Instruction(val opCode: Int, val parameters: Array<Parameter>) {
+data class Instruction(val rb: Long, val opCode: Int, val parameters: Array<Parameter>) {
 
-    fun getValues(program: List<Int>): Triple<Int, Int, Int> {
+    fun getValues(program: IntCodeProgram): Triple<Long, Long, Long> {
         return Triple(
             getValue(parameters.elementAtOrNull(0), program),
             getValue(parameters.elementAtOrNull(1), program),
@@ -10,13 +10,34 @@ data class Instruction(val opCode: Int, val parameters: Array<Parameter>) {
         )
     }
 
-    private fun getValue(parameter: Parameter?, program: List<Int>): Int {
+    fun getAddress(parameterId: Int): Long {
+        val parameter = parameters.getOrNull(parameterId)
         return when {
             parameter == null -> {
                 -1
             }
             parameter.mode == ParameterMode.POSITION_MODE -> {
-                program[parameter.code]
+                parameter.code
+            }
+            parameter.mode == ParameterMode.RELATIVE_MODE -> {
+                rb + parameter.code
+            }
+            else -> {
+                throw RuntimeException("Can't get an address for IMMEDIATE_MODE")
+            }
+        }
+    }
+
+    private fun getValue(parameter: Parameter?, program: IntCodeProgram): Long {
+        return when {
+            parameter == null -> {
+                -1
+            }
+            parameter.mode == ParameterMode.POSITION_MODE -> {
+                program.getValueAtAddress(parameter.code)
+            }
+            parameter.mode == ParameterMode.RELATIVE_MODE -> {
+                program.getValueAtAddress(rb + parameter.code)
             }
             else -> {
                 parameter.code

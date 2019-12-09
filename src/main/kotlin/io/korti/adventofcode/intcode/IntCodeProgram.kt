@@ -2,34 +2,42 @@ package io.korti.adventofcode.intcode
 
 import java.util.*
 
-class IntCodeProgram(private val program: List<Int>, private val headless: Boolean, private val feedbackMode: Boolean) {
+class IntCodeProgram(private val program: List<Long>, private val headless: Boolean, private val feedbackMode: Boolean) {
 
     private var mProgram = program.toMutableList()
+    private var memory = mutableMapOf<Long, Long>()
     private var pc = 0
+    private var rb = 0L
     private var finished = false
 
-    var inputBuffer: Queue<Int> = LinkedList<Int>()
-    var outputBuffer = 0
+    var inputBuffer: Queue<Long> = LinkedList()
+    var outputBuffer = 0L
 
     fun execute() {
-        var instruction: Instruction
-        do {
-            val (instructionCode, parameterModes) = parseOpCode(mProgram[pc])
-            val parameterModesL = parameterModes.toList()
-            val parameterCount = parameterCount(instructionCode)
-            val parameters = (1 .. parameterCount).map {
-                Parameter(parameterModesL[it - 1], mProgram[pc + it])
-            }
-            instruction = Instruction(
-                instructionCode,
-                parameters.toTypedArray()
-            )
-            pc = execute(instruction)
-            if (feedbackMode && instruction.opCode == 4) {
-                break
-            }
-        } while (instruction.opCode != 99)
-        finished = instruction.opCode == 99
+        try {
+            var instruction: Instruction
+            do {
+                val (instructionCode, parameterModes) = parseOpCode(mProgram[pc])
+                val parameterModesL = parameterModes.toList()
+                val parameterCount = parameterCount(instructionCode)
+                val parameters = (1..parameterCount).map {
+                    Parameter(parameterModesL[it - 1], mProgram[pc + it])
+                }
+                instruction = Instruction(
+                    rb,
+                    instructionCode,
+                    parameters.toTypedArray()
+                )
+                pc = execute(instruction)
+                if (feedbackMode && instruction.opCode == 4) {
+                    break
+                }
+            } while (instruction.opCode != 99)
+            finished = instruction.opCode == 99
+        } catch (e: Exception) {
+            println("${e.javaClass.name} with ${e.message} at PC: $pc")
+            e.printStackTrace()
+        }
     }
 
     fun reset() {
@@ -41,18 +49,34 @@ class IntCodeProgram(private val program: List<Int>, private val headless: Boole
 
     fun isFinished() = finished
 
+    fun getValueAtAddress(address: Long): Long {
+        return if (address > mProgram.size) {
+            memory.getOrDefault(address, 0L)
+        } else {
+            mProgram[address.toInt()]
+        }
+    }
+
+    fun writeValueAtAddress(address: Long, value: Long) {
+        if(address > mProgram.size) {
+            memory[address] = value
+        } else {
+            mProgram[address.toInt()] = value
+        }
+    }
+
     private fun execute(instruction: Instruction): Int {
         return when(instruction.opCode) {
             1 -> {
-                val (p1, p2) = instruction.getValues(mProgram)
-                val p3 = instruction.parameters[2]
-                mProgram[p3.code] = p1 + p2
+                val (p1, p2) = instruction.getValues(this)
+                val p3 = instruction.getAddress(2)
+                writeValueAtAddress(p3, p1 + p2)
                 pc + 4
             }
             2 -> {
-                val (p1, p2) = instruction.getValues(mProgram)
-                val p3 = instruction.parameters[2]
-                mProgram[p3.code] = p1 * p2
+                val (p1, p2) = instruction.getValues(this)
+                val p3 = instruction.getAddress(2)
+                writeValueAtAddress(p3, p1 * p2)
                 pc + 4
             }
             3 -> {
@@ -60,16 +84,17 @@ class IntCodeProgram(private val program: List<Int>, private val headless: Boole
                 if (p1.mode == ParameterMode.IMMEDIATE_MODE) {
                     throw RuntimeException("Immediate mode for INTCODE 3 at pos: $pc not supported.")
                 }
+                val address = instruction.getAddress(0)
                 if(headless) {
-                    mProgram[p1.code] = inputBuffer.poll()
+                    writeValueAtAddress(address, inputBuffer.poll())
                 } else {
                     print("Input: ")
-                    mProgram[p1.code] = getInput()
+                    writeValueAtAddress(address, getInput())
                 }
                 pc + 2
             }
             4 -> {
-                val (p1) = instruction.getValues(mProgram)
+                val (p1) = instruction.getValues(this)
                 if(headless.not()) {
                     println("Output: $p1")
                 }
@@ -77,24 +102,29 @@ class IntCodeProgram(private val program: List<Int>, private val headless: Boole
                 pc + 2
             }
             5 -> {
-                val (p1, p2) = instruction.getValues(mProgram)
-                if(p1 != 0) p2 else pc + 3
+                val (p1, p2) = instruction.getValues(this)
+                if(p1 != 0L) p2.toInt() else pc + 3
             }
             6 -> {
-                val (p1, p2) = instruction.getValues(mProgram)
-                if(p1 == 0) p2 else pc + 3
+                val (p1, p2) = instruction.getValues(this)
+                if(p1 == 0L) p2.toInt() else pc + 3
             }
             7 -> {
-                val (p1, p2) = instruction.getValues(mProgram)
-                val p3 = instruction.parameters[2]
-                mProgram[p3.code] = if(p1 < p2) 1 else 0
+                val (p1, p2) = instruction.getValues(this)
+                val p3 = instruction.getAddress(2)
+                writeValueAtAddress(p3, if(p1 < p2) 1 else 0)
                 pc + 4
             }
             8 -> {
-                val (p1, p2) = instruction.getValues(mProgram)
-                val p3 = instruction.parameters[2]
-                mProgram[p3.code] = if(p1 == p2) 1 else 0
+                val (p1, p2) = instruction.getValues(this)
+                val p3 = instruction.getAddress(2)
+                writeValueAtAddress(p3, if(p1 == p2) 1 else 0)
                 pc + 4
+            }
+            9 -> {
+                val (p1) = instruction.getValues(this)
+                rb += p1
+                pc + 2
             }
             99 -> {
                 pc + 1
@@ -105,9 +135,9 @@ class IntCodeProgram(private val program: List<Int>, private val headless: Boole
         }
     }
 
-    private fun getInput(): Int {
+    private fun getInput(): Long {
         val input = readLine() ?: throw RuntimeException("Input was null.")
-        return input.toInt()
+        return input.toLong()
     }
 
     private fun parameterCount(instruction: Int): Int {
@@ -118,7 +148,7 @@ class IntCodeProgram(private val program: List<Int>, private val headless: Boole
             arrayOf(5, 6).contains(instruction) -> {
                 2
             }
-            arrayOf(3, 4).contains(instruction) -> {
+            arrayOf(3, 4, 9).contains(instruction) -> {
                 1
             }
             instruction == 99 -> {
@@ -130,7 +160,7 @@ class IntCodeProgram(private val program: List<Int>, private val headless: Boole
         }
     }
 
-    private fun parseOpCode(opcode: Int): Pair<Int, Triple<ParameterMode, ParameterMode, ParameterMode>> {
+    private fun parseOpCode(opcode: Long): Pair<Int, Triple<ParameterMode, ParameterMode, ParameterMode>> {
         var sOpCode = opcode.toString()
         sOpCode = "0".repeat(5 - sOpCode.length) + sOpCode
         val parModes = sOpCode.substring(0, 3)
