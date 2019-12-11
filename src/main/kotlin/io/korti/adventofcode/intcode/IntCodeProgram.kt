@@ -11,7 +11,7 @@ class IntCodeProgram(private val program: List<Long>, private val headless: Bool
     private var finished = false
 
     var inputBuffer: Queue<Long> = LinkedList()
-    var outputBuffer = 0L
+    var outputBuffer: Queue<Long> = LinkedList()
 
     fun execute() {
         try {
@@ -50,7 +50,7 @@ class IntCodeProgram(private val program: List<Long>, private val headless: Bool
     fun isFinished() = finished
 
     fun getValueAtAddress(address: Long): Long {
-        return if (address > mProgram.size) {
+        return if (address >= mProgram.size) {
             memory.getOrDefault(address, 0L)
         } else {
             mProgram[address.toInt()]
@@ -58,7 +58,7 @@ class IntCodeProgram(private val program: List<Long>, private val headless: Bool
     }
 
     fun writeValueAtAddress(address: Long, value: Long) {
-        if(address > mProgram.size) {
+        if(address >= mProgram.size) {
             memory[address] = value
         } else {
             mProgram[address.toInt()] = value
@@ -98,7 +98,7 @@ class IntCodeProgram(private val program: List<Long>, private val headless: Bool
                 if(headless.not()) {
                     println("Output: $p1")
                 }
-                outputBuffer = p1
+                outputBuffer.add(p1)
                 pc + 2
             }
             5 -> {

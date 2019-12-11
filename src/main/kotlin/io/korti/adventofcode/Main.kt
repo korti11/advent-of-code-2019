@@ -36,6 +36,8 @@ private fun getDay(level: Int): AbstractDay {
         7 -> DaySeven()
         8 -> DayEight()
         9 -> DayNine()
+        10 -> DayTen()
+        11 -> DayEleven()
         else -> {
             throw Exception("Selected level does not exists!")
         }

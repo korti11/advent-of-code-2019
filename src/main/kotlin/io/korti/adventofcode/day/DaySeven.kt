@@ -32,7 +32,7 @@ class DaySeven : AbstractDay() {
                 programs.forEach { program ->
                     program.inputBuffer.add(output)
                     program.execute()
-                    output = program.outputBuffer
+                    output = program.outputBuffer.poll()
                 }
             } while (programs.last().isFinished().not())
             if(output > maxThrust) maxThrust = output
